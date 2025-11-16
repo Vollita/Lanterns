@@ -1,5 +1,3 @@
-// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
-
 Shader "FX/Water4" {
 Properties {
 	_ReflectionTex ("Internal reflection", 2D) = "white" {}
@@ -85,7 +83,8 @@ CGINCLUDE
 	sampler2D _ReflectionTex;
 	sampler2D _RefractionTex;
 	sampler2D _ShoreTex;
-	sampler2D_float _CameraDepthTexture;
+	// Use Unity's built-in depth texture declaration (works across D3D11/Vulkan/GL/Metal on Built-in RP)
+	UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
 
 	// colors in use
 	uniform float4 _RefrColorDepth;
@@ -179,7 +178,8 @@ CGINCLUDE
 		half4 grabWithOffset = i.grabPassPos + distortOffset;
 		
 		half4 rtRefractionsNoDistort = tex2Dproj(_RefractionTex, UNITY_PROJ_COORD(i.grabPassPos));
-		half refrFix = SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(grabWithOffset));
+		// depth sampling via Unity macro for Built-in RP:
+		half refrFix = UNITY_SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(grabWithOffset));
 		half4 rtRefractions = tex2Dproj(_RefractionTex, UNITY_PROJ_COORD(grabWithOffset));
 		
 		#ifdef WATER_REFLECTIVE
@@ -199,7 +199,8 @@ CGINCLUDE
 		half4 edgeBlendFactors = half4(1.0, 0.0, 0.0, 0.0);
 		
 		#ifdef WATER_EDGEBLEND_ON
-			float depth = SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.screenPos));
+			// use Unity macro for projected depth sampling
+			half depth = UNITY_SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.screenPos));
 			depth = LinearEyeDepth(depth);
 			edgeBlendFactors = saturate(_InvFadeParemeter * (depth-i.screenPos.w));
 			edgeBlendFactors.y = 1.0-edgeBlendFactors.y;
@@ -292,7 +293,7 @@ CGINCLUDE
 		half4 edgeBlendFactors = half4(1.0, 0.0, 0.0, 0.0);
 		
 		#ifdef WATER_EDGEBLEND_ON
-			half depth = SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.screenPos));
+			half depth = UNITY_SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.screenPos));
 			depth = LinearEyeDepth(depth);
 			edgeBlendFactors = saturate(_InvFadeParemeter * (depth-i.screenPos.z));
 			edgeBlendFactors.y = 1.0-edgeBlendFactors.y;
