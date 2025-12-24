@@ -3,12 +3,20 @@
     "maps": [
         {
             "name": "Player",
+<<<<<<< Updated upstream
             "id": "b7e5fbe7-b1fb-492d-9504-c1da24e7e770",
+=======
+            "id": "6f1960c6-ed5d-4fef-b210-c51372211181",
+>>>>>>> Stashed changes
             "actions": [
                 {
                     "name": "Move",
                     "type": "Value",
+<<<<<<< Updated upstream
                     "id": "57dbb55d-48a9-45ab-9def-f4965e767cb2",
+=======
+                    "id": "0b47d30a-69cd-480a-a556-f4df270020fe",
+>>>>>>> Stashed changes
                     "expectedControlType": "Vector2",
                     "processors": "",
                     "interactions": "",
@@ -17,7 +25,11 @@
                 {
                     "name": "Look",
                     "type": "Value",
+<<<<<<< Updated upstream
                     "id": "46506109-99da-4462-a6ef-c5019ee816d7",
+=======
+                    "id": "f69adf7c-e932-45a7-bbba-da03ba29c2e8",
+>>>>>>> Stashed changes
                     "expectedControlType": "Vector2",
                     "processors": "",
                     "interactions": "",
@@ -27,7 +39,11 @@
             "bindings": [
                 {
                     "name": "",
+<<<<<<< Updated upstream
                     "id": "97c30a42-ee4a-45a8-b52a-d95669188c11",
+=======
+                    "id": "b357f4fc-9dbf-49dc-a76b-7a0b1db7455d",
+>>>>>>> Stashed changes
                     "path": "<OculusTouchController>{LeftHand}/{Primary2DAxis}",
                     "interactions": "",
                     "processors": "",
@@ -38,7 +54,11 @@
                 },
                 {
                     "name": "",
+<<<<<<< Updated upstream
                     "id": "f6be5fd3-1ccd-49f9-85af-7d2817fdf8f7",
+=======
+                    "id": "9d3af205-e090-4868-ac78-74dadbecb4ee",
+>>>>>>> Stashed changes
                     "path": "<OculusTouchController>{RightHand}/{Primary2DAxis}",
                     "interactions": "",
                     "processors": "",
