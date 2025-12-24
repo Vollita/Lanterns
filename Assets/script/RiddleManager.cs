@@ -2,6 +2,7 @@
 using TMPro;
 using UnityEngine.UI;
 using UnityEngine.XR.Interaction.Toolkit;
+using System.Reflection;
 
 public class RiddleManager : MonoBehaviour
 {
@@ -127,9 +128,22 @@ public class RiddleManager : MonoBehaviour
         {
             // UI模式：只与UI交互
             // UI层在InteractionLayerSettings中的索引是5（从0开始），所以使用位掩码 1 << 5 = 32
-            uint uiLayerBits = 1u << 5; // UI层索引为5
-            rightHandRayInteractor.interactionLayers = (InteractionLayerMask)uiLayerBits;
-            Debug.Log("切换到UI交互模式 - 只与UI交互");
+            // 使用反射设置InteractionLayerMask的内部值
+            InteractionLayerMask uiLayerMask = default(InteractionLayerMask);
+            var layerMaskType = typeof(InteractionLayerMask);
+            var valueField = layerMaskType.GetField("m_Bits", BindingFlags.NonPublic | BindingFlags.Instance);
+            if (valueField != null)
+            {
+                object boxedMask = uiLayerMask;
+                valueField.SetValue(boxedMask, 1u << 5);
+                uiLayerMask = (InteractionLayerMask)boxedMask;
+                rightHandRayInteractor.interactionLayers = uiLayerMask;
+                Debug.Log("切换到UI交互模式 - 只与UI交互");
+            }
+            else
+            {
+                Debug.LogError("无法设置InteractionLayerMask，请检查XR Interaction Toolkit版本");
+            }
         }
         else
         {
