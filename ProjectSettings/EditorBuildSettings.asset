@@ -12,6 +12,7 @@ EditorBuildSettings:
     path: Assets/Scenes/Scene.unity
     guid: 4dd920f3ff7950c4f89129522e60f449
   - enabled: 1
+<<<<<<< Updated upstream
     path: Assets/Scenes/deng_mi_test.unity
     guid: 3da245abc0f0cba49895e8e47a03f71b
   - enabled: 0
@@ -23,5 +24,12 @@ EditorBuildSettings:
   m_configObjects:
     Unity.XR.Oculus.Settings: {fileID: 11400000, guid: 8931e98c5bfd9b446b4efa51a2e18f27, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: fb6a3104444fab642baa5cb55b9c83d6, type: 3}
+=======
+    path: Assets/Scenes/test.unity
+    guid: b1b0c5b50ea95bb4098a182ba79017dc
+  m_configObjects:
+    Unity.XR.Oculus.Settings: {fileID: 11400000, guid: 8931e98c5bfd9b446b4efa51a2e18f27, type: 2}
+    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 89b8a94780522234c88212ee4f6445ae, type: 3}
+>>>>>>> Stashed changes
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: c7bb5399d110b3a4aa56ed1191343534, type: 2}
     com.unity.xr.openxr.settings4: {fileID: 11400000, guid: ed365de794a2d0b4ab3d0741cd58c669, type: 2}
