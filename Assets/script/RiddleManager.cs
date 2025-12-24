@@ -126,8 +126,9 @@ public class RiddleManager : MonoBehaviour
         if (uiMode)
         {
             // UI模式：只与UI交互
-            var uiLayerMask = InteractionLayerMask.GetMask("UI");
-            rightHandRayInteractor.interactionLayers = uiLayerMask;
+            // UI层在InteractionLayerSettings中的索引是5（从0开始），所以使用位掩码 1 << 5 = 32
+            uint uiLayerBits = 1u << 5; // UI层索引为5
+            rightHandRayInteractor.interactionLayers = (InteractionLayerMask)uiLayerBits;
             Debug.Log("切换到UI交互模式 - 只与UI交互");
         }
         else
