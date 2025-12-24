@@ -4,32 +4,7 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes:
-  - enabled: 0
-    path: Assets/Scenes/SampleScene.unity
-    guid: 9fc0d4010bbf28b4594072e72b8655ab
-  - enabled: 0
-    path: Assets/Scenes/Scene.unity
-    guid: 4dd920f3ff7950c4f89129522e60f449
-  - enabled: 1
-<<<<<<< Updated upstream
-    path: Assets/Scenes/deng_mi_test.unity
-    guid: 3da245abc0f0cba49895e8e47a03f71b
-  - enabled: 0
-    path: Assets/Scenes/deng_mi_test_gim.unity
-    guid: aced3bd790cb94e468461a879c65ef51
-  - enabled: 0
-    path: Assets/Samples/XR Interaction Toolkit/2.6.5/Starter Assets/DemoScene.unity
-    guid: 319dafa5c80f29f428dc1e0d03f04177
+  m_Scenes: []
   m_configObjects:
-    Unity.XR.Oculus.Settings: {fileID: 11400000, guid: 8931e98c5bfd9b446b4efa51a2e18f27, type: 2}
-    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: fb6a3104444fab642baa5cb55b9c83d6, type: 3}
-=======
-    path: Assets/Scenes/test.unity
-    guid: b1b0c5b50ea95bb4098a182ba79017dc
-  m_configObjects:
-    Unity.XR.Oculus.Settings: {fileID: 11400000, guid: 8931e98c5bfd9b446b4efa51a2e18f27, type: 2}
-    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 89b8a94780522234c88212ee4f6445ae, type: 3}
->>>>>>> Stashed changes
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: c7bb5399d110b3a4aa56ed1191343534, type: 2}
     com.unity.xr.openxr.settings4: {fileID: 11400000, guid: ed365de794a2d0b4ab3d0741cd58c669, type: 2}
