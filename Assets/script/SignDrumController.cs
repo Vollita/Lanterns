@@ -5,25 +5,22 @@ using TMPro;
 public class SignDrumController : MonoBehaviour
 {
     [Header("签筒设置")]
-    public GameObject signDrum; // 场景中的签筒GameObject
+    public GameObject signDrum;
     private XRGrabInteractable grabInteractable;
     private Renderer drumRenderer;
     private Material drumMaterial;
-    private Quaternion drumOriginalRotation;
-    private Quaternion targetDrumRotation;
 
-    [Header("摇晃设置")]
-    public float shakeSensitivity = 5f;
-    public float shakeCompleteThreshold = 0.9f; // 摇晃完成阈值
+    [Header("摇晃设置（基于旋转和平动）")]
     public float rotationAngleThreshold = 30f; // 旋转角度阈值（度）
+    public float movementSpeedThreshold = 2f; // 手柄移动速度阈值
     public int shakeCountThreshold = 3; // 需要摇晃次数
     private float currentShakeIntensity = 0f;
-    private Vector3 lastControllerPos;
     private bool isCurrentlyGrabbed = false;
     private bool shakeCompleted = false;
+    private Vector3 lastControllerPos;
     private Quaternion lastDrumRotation;
     private int shakeCount = 0;
-    private bool signSpawned = false; // 签条是否已生成
+    private bool signSpawned = false;
 
     [Header("旋转动画")]
     public float rotationSpeed = 300f;
@@ -35,18 +32,20 @@ public class SignDrumController : MonoBehaviour
 
     [Header("签条预制体")]
     public GameObject signPrefab;
-    public float signSpawnForce = 8f;
+    private GameObject spawnedSign;
+    private XRSimpleInteractable signInteractable;
 
     [Header("UI提示框")]
-    public Canvas tipCanvas; // 提示框Canvas（一个）
-    public TextMeshProUGUI shakeText; // 摇晃提示文字
-    public TextMeshProUGUI clickText; // 点击提示文字
+    public Canvas tipCanvas;
+    public TextMeshProUGUI shakeText;
+    public TextMeshProUGUI clickText;
 
     [Header("祝福语UI")]
-    public Canvas blessingCanvas; // 祝福语Canvas
+    public Canvas blessingCanvas;
 
-    private Transform controllerTransform;
     private Transform cameraTransform;
+    private Transform grabInteractorTransform;
+    private bool signSelected = false;
 
     void Start()
     {
@@ -65,23 +64,20 @@ public class SignDrumController : MonoBehaviour
 
             drumRenderer = signDrum.GetComponent<Renderer>();
             if (drumRenderer != null)
-                drumMaterial = new Material(drumRenderer.material); // 复制材质避免影响其他物体
-                
-            drumOriginalRotation = signDrum.transform.rotation;
-            targetDrumRotation = drumOriginalRotation;
+                drumMaterial = new Material(drumRenderer.material);
+
             Debug.Log($"✅ 已获取签筒");
         }
         else
         {
-            Debug.LogError($"❌ 签筒未赋值，请在Inspector中拖入签筒GameObject");
+            Debug.LogError($"❌ 签筒未赋值");
         }
 
-        controllerTransform = GetComponent<Transform>();
         cameraTransform = Camera.main.transform;
         audioSource = GetComponent<AudioSource>();
-        lastControllerPos = controllerTransform.position;
+        if (audioSource == null)
+            audioSource = gameObject.AddComponent<AudioSource>();
 
-        // 初始化UI
         if (tipCanvas != null)
             tipCanvas.gameObject.SetActive(false);
         if (blessingCanvas != null)
@@ -106,13 +102,11 @@ public class SignDrumController : MonoBehaviour
         signSpawned = false;
         currentShakeIntensity = 0f;
         shakeCount = 0;
-        lastControllerPos = controllerTransform.position;
+        lastControllerPos = args.interactorObject.transform.position;
         lastDrumRotation = signDrum.transform.rotation;
-        targetDrumRotation = drumOriginalRotation;
-        
-        // 显示"摇晃"提示
+        grabInteractorTransform = args.interactorObject.transform;
+
         ShowShakeTip();
-        
         Debug.Log("✋ 已抓住签筒！开始摇晃");
     }
 
@@ -121,24 +115,21 @@ public class SignDrumController : MonoBehaviour
     {
         isCurrentlyGrabbed = false;
         currentShakeIntensity = 0f;
-        targetDrumRotation = signDrum.transform.rotation;
-        
-        // 隐藏提示框
+        grabInteractorTransform = null;
+
         HideTip();
-        
-        // 关闭摇晃光效
         SetShakeGlow(false);
-        
+
         Debug.Log("🔓 已释放签筒");
     }
 
-    // 被激活事件（按下Activate按钮）
+    // 被激活事件
     void OnActivate(ActivateEventArgs args)
     {
         if (!isCurrentlyGrabbed)
             return;
 
-        // 摇晃完成后，第一次点击：生成签条
+        // 第一次点击：生成签条
         if (shakeCompleted && !signSpawned)
         {
             Debug.Log("🎯 第一次点击！生成签条");
@@ -148,11 +139,18 @@ public class SignDrumController : MonoBehaviour
             return;
         }
 
-        // 签条已生成，第二次点击：显示祝福语UI
-        if (signSpawned)
+        // 第二次点击：显示祝福语
+        if (signSpawned && spawnedSign != null)
         {
-            Debug.Log("📜 第二次点击！显示祝福语");
-            ShowBlessingUI();
+            if (signInteractable != null && (signInteractable.isSelected || signInteractable.isHovered))
+            {
+                Debug.Log("📜 点击签条！显示祝福语");
+                ShowBlessingUI();
+            }
+            else
+            {
+                Debug.Log("⚠️ 请先用激光对准签条再点击");
+            }
         }
     }
 
@@ -161,55 +159,73 @@ public class SignDrumController : MonoBehaviour
         if (signDrum == null)
             return;
 
-        // 抓取中时：检测摇晃
-        if (isCurrentlyGrabbed)
+        if (isCurrentlyGrabbed && grabInteractorTransform != null)
         {
             DetectShake();
-            RotateSignDrum();
+        }
+
+        // 签条被选中后，检测鼠标左键点击
+        if (signSelected && Input.GetMouseButtonDown(0))
+        {
+            ShowBlessingUI();
+            signSelected = false;
         }
     }
 
-    // 检测摇晃强度
+    // 检测摇晃（基于旋转角度和平动速度，任意一个达到阈值就算一次）
     void DetectShake()
     {
-        if (signDrum == null)
+        if (grabInteractorTransform == null || signDrum == null)
             return;
 
-        // 计算签筒的旋转角度变化
+        bool shakeDetected = false;
+
+        // 检测签筒旋转
         Quaternion rotationDelta = signDrum.transform.rotation * Quaternion.Inverse(lastDrumRotation);
-        
-        // 转换为轴角表示法
         rotationDelta.ToAngleAxis(out float angle, out Vector3 axis);
-        
-        // 角度正规化到0-180
         if (angle > 180f)
             angle = 360f - angle;
 
-        // 达到旋转阈值时计数
         if (angle >= rotationAngleThreshold)
+        {
+            shakeDetected = true;
+            Debug.Log($"检测到旋转摇晃：{angle:F1}°");
+        }
+
+        // 检测手柄平动速度
+        Vector3 currentPos = grabInteractorTransform.position;
+        Vector3 positionDelta = currentPos - lastControllerPos;
+        float movementSpeed = positionDelta.magnitude / Time.deltaTime;
+
+        if (movementSpeed >= movementSpeedThreshold)
+        {
+            shakeDetected = true;
+            Debug.Log($"检测到平动摇晃：速度 {movementSpeed:F2}m/s");
+        }
+
+        // 如果检测到任意摇晃方式
+        if (shakeDetected)
         {
             shakeCount++;
             currentShakeIntensity = (float)shakeCount / shakeCountThreshold;
             currentShakeIntensity = Mathf.Clamp01(currentShakeIntensity);
 
-            // 播放摇晃音效
-            if (shakeSound != null)
-            {
+            if (shakeSound != null && audioSource != null)
                 audioSource.PlayOneShot(shakeSound, 0.4f);
-            }
 
-            // 摇晃光效
             SetShakeGlow(true);
-            
             Debug.Log($"摇晃检测到！次数: {shakeCount}/{shakeCountThreshold}");
         }
         else
         {
-            // 角度过小则逐渐减弱光效
-            SetShakeGlow(false);
+            // 逐渐衰减光效
+            currentShakeIntensity = Mathf.Lerp(currentShakeIntensity, 0f, Time.deltaTime * 2f);
+            
+            if (currentShakeIntensity < 0.2f)
+                SetShakeGlow(false);
         }
 
-        // 达到完成阈值时更新提示
+        // 完成摇晃
         if (shakeCount >= shakeCountThreshold && !shakeCompleted)
         {
             shakeCompleted = true;
@@ -218,8 +234,8 @@ public class SignDrumController : MonoBehaviour
             Debug.Log("✅ 摇晃完成！");
         }
 
+        lastControllerPos = currentPos;
         lastDrumRotation = signDrum.transform.rotation;
-        Debug.Log($"摇晃强度: {currentShakeIntensity * 100:F0}% | 旋转角度: {angle:F1}°");
     }
 
     // 摇晃光效
@@ -230,29 +246,12 @@ public class SignDrumController : MonoBehaviour
 
         if (enable)
         {
-            // 弱黄色发光
             drumMaterial.SetColor("_EmissionColor", new Color(1f, 0.8f, 0.2f, 1f) * (0.3f + currentShakeIntensity * 0.5f));
         }
         else
         {
             drumMaterial.SetColor("_EmissionColor", Color.black);
         }
-    }
-
-    // 旋转签筒
-    void RotateSignDrum()
-    {
-        if (signDrum == null)
-            return;
-
-        float rotateAmount = currentShakeIntensity * rotationSpeed;
-        targetDrumRotation *= Quaternion.Euler(
-            rotateAmount * Time.deltaTime * 0.7f,
-            rotateAmount * Time.deltaTime,
-            rotateAmount * Time.deltaTime * 0.3f
-        );
-
-        signDrum.transform.rotation = Quaternion.Lerp(signDrum.transform.rotation, targetDrumRotation, Time.deltaTime * 3f);
     }
 
     // 生成签条
@@ -264,59 +263,74 @@ public class SignDrumController : MonoBehaviour
             return;
         }
 
-        // 位置：玩家眼前1.5米处
         Vector3 spawnPos = cameraTransform.position + cameraTransform.forward * 1.5f;
-        
-        // 旋转：竖直着放，与玩家面对面
         Quaternion spawnRotation = Quaternion.LookRotation(cameraTransform.forward);
 
-        GameObject newSign = Instantiate(signPrefab, spawnPos, spawnRotation);
+        spawnedSign = Instantiate(signPrefab, spawnPos, spawnRotation);
 
-        // 添加签条发光闪烁效果
-        Renderer signRenderer = newSign.GetComponent<Renderer>();
+        // 确保有Collider
+        if (spawnedSign.GetComponent<Collider>() == null)
+            spawnedSign.AddComponent<BoxCollider>();
+
+        // 获取或添加 XRSimpleInteractable
+        signInteractable = spawnedSign.GetComponent<XRSimpleInteractable>();
+        if (signInteractable == null)
+            signInteractable = spawnedSign.AddComponent<XRSimpleInteractable>();
+
+        signInteractable.hoverEntered.AddListener(OnSignHovered);
+        signInteractable.hoverExited.AddListener(OnSignHoverExited);
+
+        // 闪烁效果
+        Renderer signRenderer = spawnedSign.GetComponent<Renderer>();
         if (signRenderer != null)
-        {
-            Material signMat = signRenderer.material;
-            StartCoroutine(SignFlashGlow(signMat, 5f)); // 闪烁5秒，等待玩家第二次点击
-        }
+            StartCoroutine(SignFlashGlow(signRenderer.material));
 
-        Rigidbody signRb = newSign.GetComponent<Rigidbody>();
+        // 物理效果
+        Rigidbody signRb = spawnedSign.GetComponent<Rigidbody>();
         if (signRb != null)
         {
-            // 轻微向上飘动
             signRb.velocity = Vector3.up * 0.5f;
             signRb.angularVelocity = Vector3.zero;
         }
 
         if (audioSource != null && successSound != null)
-        {
             audioSource.PlayOneShot(successSound, 0.8f);
-        }
 
-        Debug.Log("🎯 签条飘出！再点击一次查看祝福语");
+        Debug.Log("🎯 签条飘出！用激光对准后再点击查看祝福语");
     }
 
-    // 签条闪烁发光
-    System.Collections.IEnumerator SignFlashGlow(Material signMat, float duration)
+    // 签条被悬停（激光对准）
+    void OnSignHovered(HoverEnterEventArgs args)
+    {
+        signSelected = true;
+        Debug.Log("✨ 激光对准签条！用鼠标左键点击查看祝福语");
+    }
+
+    // 签条悬停结束（激光移开）
+    void OnSignHoverExited(HoverExitEventArgs args)
+    {
+        signSelected = false;
+        Debug.Log("激光移开签条");
+    }
+
+    // 闪烁效果
+    System.Collections.IEnumerator SignFlashGlow(Material signMat)
     {
         float elapsedTime = 0f;
-        
-        while (elapsedTime < duration)
+
+        while (spawnedSign != null && blessingCanvas != null && !blessingCanvas.gameObject.activeSelf)
         {
             elapsedTime += Time.deltaTime;
-            
-            // 闪烁效果：0.5秒闪一次
-            float flashIntensity = Mathf.Sin(elapsedTime * Mathf.PI * 2f / 0.5f) * 0.5f + 0.5f;
+            float flashIntensity = Mathf.Sin(elapsedTime * Mathf.PI * 4f) * 0.5f + 0.5f;
             Color glowColor = Color.white * flashIntensity;
             signMat.SetColor("_EmissionColor", glowColor);
-            
             yield return null;
         }
-        
-        signMat.SetColor("_EmissionColor", Color.black);
+
+        if (signMat != null)
+            signMat.SetColor("_EmissionColor", Color.black);
     }
 
-    // 显示"摇晃"提示
     void ShowShakeTip()
     {
         if (tipCanvas != null)
@@ -329,7 +343,6 @@ public class SignDrumController : MonoBehaviour
         }
     }
 
-    // 显示"点击"提示
     void ShowClickTip()
     {
         if (tipCanvas != null)
@@ -342,20 +355,15 @@ public class SignDrumController : MonoBehaviour
         }
     }
 
-    // 隐藏提示框
     void HideTip()
     {
         if (tipCanvas != null)
             tipCanvas.gameObject.SetActive(false);
     }
 
-    // 显示祝福语UI
     void ShowBlessingUI()
     {
         if (blessingCanvas != null)
-        {
             blessingCanvas.gameObject.SetActive(true);
-            // 这里可以随机显示不同的祝福语
-        }
     }
 }
