@@ -1,3 +1,4 @@
 Assets/Scenes/Scene.unity filter=lfs diff=lfs merge=lfs -text
 *.unity filter=lfs diff=lfs merge=lfs -text
-*.fbx filter=lfs diff=lfs merge=lfs -text
+# *.fbx filter=lfs diff=lfs merge=lfs -text
+Assets/Model/客栈.fbx filter=lfs diff=lfs merge=lfs -text
